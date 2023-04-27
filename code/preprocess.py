@@ -2,10 +2,10 @@ import tensorflow as tf
 import pandas as pd
 import numpy as np
 from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
-
+from tensorflow.keras.preprocessing.sequence import pad_sequences
 
 def get_data(filename):
-    data = pd.read_csv("./data/haiku.csv")
+    data = pd.read_csv(filename)
     data = data.replace("/", " / ", regex=True)
     # print(data.head())
     # print(data["processed_title"])
@@ -23,6 +23,11 @@ def get_data(filename):
     data = data[[a.count(4) <= 2 for a in data['vectorized']]]
     data = data[data['vectorized'].apply(lambda x: len(x) <= 19)]
     max_length = find_max_length(data["vectorized"].to_list())
+    print(f"Max length found {max_length}")
+    print(data["vectorized"])
+
+    data['vectorized_pad'] = pad_sequences(vectorized_array, maxlen=max_length, padding='post')
+    print(data['vectorized_pad'])
 
     
 
@@ -46,5 +51,12 @@ def find_max_length(vectorized_poems):
         max_length = max(max_length, len(poem))   
     return max_length
 
-def add_padding():
+def add_padding(data, max_length):
     pass
+
+
+def main():
+    get_data("./data/haiku.csv")
+
+if __name__ == "__main__":
+    main()
