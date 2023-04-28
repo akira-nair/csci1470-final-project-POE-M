@@ -51,9 +51,6 @@ def find_max_length(vectorized_poems):
         max_length = max(max_length, len(poem))   
     return max_length
 
-def add_padding(data, max_length):
-    pass
-
 
 def main():
     get_data("./data/haiku.csv")
