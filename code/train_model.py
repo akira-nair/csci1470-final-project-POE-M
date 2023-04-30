@@ -14,20 +14,35 @@ import sys, os
 sns.set(rc={"figure.dpi": 300})
 tf.keras.backend.clear_session()
 
-def get_corpus(filepath = '../data/haiku.csv'):
+def get_corpus(filepath = '../data/haiku.csv') -> list:
+    """
+    Reads haiku csv data and constructs a list of strings, representing processed haikus
+    This list of strings forms the corpus of the dataset, through which we derive our vocabulary
+
+    Args:
+        filepath (str, optional): File path to data. Defaults to '../data/haiku.csv'.
+
+    Returns:
+        list: List of strings, each string being a haiku
+    """
     data = pd.read_csv(filepath)
+    # we use the '/' to represent new lines within each haiku
+    # we want to tokenize the slash, so we add spaces
     data = data.replace("/", " / ", regex=True)
+    # drop any row with missing values
     data = data.dropna()
-    data.head()
+    # the column processed_title contains all the haiku data
+    # we apply the 'process raw haiku' function to that column
     data["processed_title"] = data["processed_title"].apply(lambda x: process_raw_haiku(x))
+    # convert the pandas column to a list
     corpus = data["processed_title"].to_list()
     return corpus
      
 def get_tokenizer(corpus):
     tokenizer = Tokenizer()
     tokenizer.fit_on_texts(corpus)
-    vocab_size = len(tokenizer.word_index) + 1
-    return tokenizer, vocab_size
+    
+    return tokenizer
 
 def get_x_y_sequences(corpus, vocab_size, tokenizer, max_length = None):
     input_sequences = []
@@ -100,7 +115,8 @@ def main(args):
     args = parser.parse_args(args)
     # ----
     corpus = get_corpus()
-    tokenizer, vocab_size = get_tokenizer(corpus)
+    tokenizer = get_tokenizer(corpus)
+    vocab_size = len(tokenizer.word_index) + 1
     x, y = get_x_y_sequences(corpus = corpus, vocab_size = vocab_size, tokenizer = tokenizer, max_length=25)
 
     model, history = train_model(x, y, vocab_size=vocab_size, n_epochs = args.epochs, learning_rate = args.learning_rate, batch_size=args.batch_size)
