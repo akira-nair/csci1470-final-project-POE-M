@@ -2,10 +2,10 @@ import tensorflow as tf
 import pandas as pd
 import numpy as np
 import re
-from keras.preprocessing.sequence import pad_sequences
-from keras.preprocessing.text import Tokenizer
-from keras.models import Sequential
-from keras.layers import LSTM, Embedding, Dense, SimpleRNN, GRU, Dropout, Bidirectional
+from tensorflow.keras.preprocessing.sequence import pad_sequences
+from tensorflow.keras.preprocessing.text import Tokenizer
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import LSTM, Embedding, Dense, SimpleRNN, GRU, Dropout, Bidirectional
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -63,7 +63,7 @@ def train_model(x, y, vocab_size, n_epochs=50, embedding_size=50, learning_rate=
     tf.keras.backend.clear_session()
     tf.random.set_seed(42)
     model = Sequential([
-        Embedding(input_dim=vocab_size, output_dim=embedding_size, input_length=x.shape[1]-1),
+        Embedding(input_dim=vocab_size, output_dim=embedding_size, input_length=x.shape[1]),
         Bidirectional(LSTM(4)),
         Dense(hidden_dim, activation='relu'),
         Dense(vocab_size, activation='softmax')
@@ -71,7 +71,7 @@ def train_model(x, y, vocab_size, n_epochs=50, embedding_size=50, learning_rate=
     optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
     model.compile(loss='sparse_categorical_crossentropy', optimizer=optimizer, metrics=['accuracy'])
     history = model.fit(tf.convert_to_tensor(x), tf.convert_to_tensor(y), batch_size = batch_size, epochs=n_epochs, verbose=1)
-    model.save("lstm")
+    model.save("models/lstm")
     return model, history
 
 def process_raw_haiku(haiku):
@@ -105,13 +105,13 @@ def plot_convergence(history):
     fig, ax = plt.subplots(nrows = 1, ncols = 2, figsize = (15, 5))
     sns.lineplot(history.history['loss'], ax = ax[0])
     sns.lineplot(history.history['accuracy'], ax = ax[1])
-    fig.savefig("convergence.png")
+    fig.savefig("models/convergence.png")
 
 def main(args):
     parser = argparse.ArgumentParser()
-    parser.add_argument('--epochs', default=10)
-    parser.add_argument('--batch_size', default=512)
-    parser.add_argument('--learning_rate', default=0.001)
+    parser.add_argument('--epochs', default=10, type=int)
+    parser.add_argument('--batch_size', default=512, type=int,)
+    parser.add_argument('--learning_rate', default=0.01, type=float)
     args = parser.parse_args(args)
     # ----
     corpus = get_corpus()
@@ -121,5 +121,14 @@ def main(args):
 
     model, history = train_model(x, y, vocab_size=vocab_size, n_epochs = args.epochs, learning_rate = args.learning_rate, batch_size=args.batch_size)
 
+    poem1 = "sometimes i go to the"
+    poem2 = "birds fly over and"
+    poem3 = "eating food"
+    poems = [poem1, poem2, poem3]
+    for poem in poems:
+        print(f"\n\nPoem started with {poem}, and model generated:")
+        generate_poem(model, tokenizer, poem, max_length)
+
+
 if __name__ == "__main__":
-    main(sys.argv)
+    main(sys.argv[1:])
