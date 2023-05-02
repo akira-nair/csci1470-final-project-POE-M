@@ -66,7 +66,7 @@ def get_tokenizer(corpus: list) -> tf.keras.preprocessing.text.Tokenizer:
     tokenizer.fit_on_texts(corpus)
     return tokenizer
 
-def get_x_y_sequences(corpus: list, vocab_size: int, tokenizer: tf.keras.preprocessing.text.Tokenizer, max_length: int = None) -> tuple[np.ndarray, np.ndarray]:
+def get_x_y_sequences(corpus: list, vocab_size: int, tokenizer: tf.keras.preprocessing.text.Tokenizer, max_length: int = None) -> tuple:
     """
     Get x and y sequences. To train a RNN generator that can adapt to 
     varying lengths of context sequences, we take each haiku and append a 
@@ -110,7 +110,7 @@ def get_x_y_sequences(corpus: list, vocab_size: int, tokenizer: tf.keras.preproc
     x, y = sequences[:,:-1],sequences[:,-1]
     return x, y
 
-def train_model(x: np.ndarray, y: np.ndarray, vocab_size:int , n_epochs:int=50, embedding_size:int=50, learning_rate:float=0.01, batch_size:float=512, hidden_dim:int=128, lstm_units:int = 10)->tuple[tf.keras.models.Sequential, tf.keras.callbacks.History]:
+def train_model(x: np.ndarray, y: np.ndarray, vocab_size:int , n_epochs:int=50, embedding_size:int=50, learning_rate:float=0.01, batch_size:float=512, hidden_dim:int=128, lstm_units:int = 10)->tuple:
     """
     Trains an LSTM RNN model
 
