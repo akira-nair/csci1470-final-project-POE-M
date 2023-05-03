@@ -189,17 +189,15 @@ def train_model(x: np.ndarray, y: np.ndarray, vocab_size:int , n_epochs:int=50, 
         # Embed input sequence
         Embedding(input_dim=vocab_size, output_dim=embedding_size, input_length=x.shape[1]),
         # Using bidirectional LSTM units
-        LSTM(lstm_units, return_sequences = True),
-        LSTM(lstm_units),
+        Bidirectional(LSTM(lstm_units)),
         Dense(hidden_dim, activation='relu'),
         Dense(vocab_size, activation='softmax')
     ])
-
     # Set an optimizer for the model
     optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
-    model.compile(loss='sparse_categorical_crossentropy', optimizer=optimizer, metrics=['accuracy', Perplexity()])
+    model.compile(loss='sparse_categorical_crossentropy', optimizer=optimizer, metrics=['accuracy'])
     # Train the model
-    history = model.fit(tf.convert_to_tensor(x), tf.convert_to_tensor(y), batch_size = batch_size, epochs=n_epochs, verbose=2)
+    history = model.fit(tf.convert_to_tensor(x), tf.convert_to_tensor(y), batch_size = batch_size, epochs=n_epochs, verbose=1)
     model.save("models/lstm")
     return model, history
 
@@ -254,6 +252,7 @@ def generate_poem(model1, model2, model3, tokenizer, starter_poem):
         token_list = pad_sequences([token_list], maxlen=12-1, padding='pre')
         probs = model2.predict(token_list, verbose=0)[-1]
         predicted = np.random.choice(len(probs), p=probs)
+        # predicted = np.argmax(model.predict(token_list, verbose=0), axis=-1)
         output_word = ""
         for word, index in tokenizer.word_index.items():
             if index == predicted:
@@ -296,10 +295,6 @@ def plot_convergence(history):
 
 def main(args):
     model_id = int(args[0])
-    timestamp = datetime.datetime.now().strftime("%h-%d-%H:%M")
-    output = os.path.join("models", "lstm_linebyline300e")
-    # # if not os.path.exists(output):
-    # os.mkdir(output)
     corpus, data = get_corpus()
     if model_id == 1:
         x, y = process_line1(corpus, data)
@@ -308,8 +303,7 @@ def main(args):
     elif model_id == 3:
         x, y = process_line3(corpus, data)
     else:
-        print("not valid id.")
-        return
+        raise("not valid id.")
     tokenizer = get_tokenizer(corpus)
     vocab_size = len(tokenizer.word_index) + 1
     model, history = train_model(x, y, \
