@@ -229,7 +229,7 @@ def syllable_count(word: str) -> int:
 
     Returns:
         int: number of syllables
-    Code retrieved from
+    Code source:
       https://stackoverflow.com/questions/46759492/syllable-count-in-python
     """
 
