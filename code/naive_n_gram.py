@@ -19,7 +19,7 @@ import argparse
 import sys, os
 import datetime
 import joblib
-from metrics import Perplexity
+from utils.metrics import Perplexity
 import preprocessing
 from training import train_model
 import shutil
