@@ -1,7 +1,7 @@
 #!/bin/sh
-#SBATCH --mem=64G
-#SBATCH -t 24:00:00
-#SBATCH -o poe-m_model-naive.out
+#SBATCH --mem=32G
+#SBATCH -t 8:00:00
+#SBATCH -o line_by_line_withstops_%j.out
 #SBATCH --mail-type=BEGIN,END
 #SBATCH --mail-user=akira_nair@brown.edu
 # conda activate /users/anair27/anaconda/akira_conda
@@ -9,4 +9,4 @@
 # conda init bash
 # conda activate /users/anair27/anaconda/akira_conda
 cd /users/anair27/data/anair27/misc/dl-final/csci1470-final-project-POE-M/code
-python3 train_model.py --epochs 300
+python3 line_by_line_with_stops.py ${1}

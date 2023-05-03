@@ -30,7 +30,7 @@ This Tensorflow tutorial walked us through creating a basic
 generative RNN model.
 """
 
-def get_corpus(filepath = '../data/haiku.csv') -> list:
+def get_corpus(filepath = '../data/haiku.csv') -> tuple:
     """
     Reads haiku csv data and constructs a list of strings, representing processed haikus
     This list of strings forms the corpus of the dataset, through which we derive our vocabulary
@@ -45,15 +45,66 @@ def get_corpus(filepath = '../data/haiku.csv') -> list:
     # we use the '/' to represent new lines within each haiku
     # we want to tokenize the slash, so we add spaces
     data = data.replace("/", " / ", regex=True)
+    
     # drop any row with missing values
     data = data.dropna()
     # the column processed_title contains all the haiku data
     # we apply the 'process raw haiku' function to that column
     data["processed_title"] = data["processed_title"].apply(lambda x: process_raw_haiku(x))
+    split_by_row = data["processed_title"].str.split(" / ", n = 3, expand = True)
+    data["row_1"] = split_by_row[0]
+    data["row_2"] = split_by_row[1]
+    data["row_3"] = split_by_row[2]
     # convert the pandas column to a list
     corpus = data["processed_title"].to_list()
-    return corpus
-     
+    return corpus, data
+
+def process_line1(corpus, data):
+    l1_haikus = data["row_1"].to_list()
+    tokenizer = get_tokenizer(corpus)
+    input_seqs = []
+    for l1 in l1_haikus:
+        vectorized_haiku = tokenizer.texts_to_sequences([l1])[0]
+        for n in range(1, len(vectorized_haiku)):
+            n_gram_seq = vectorized_haiku[:n+1]
+            input_seqs.append(n_gram_seq)
+    # print(input_seqs)[:5]
+    sequences = np.array(pad_sequences(input_seqs, maxlen=5, padding='pre'))
+    x, y = sequences[:,:-1],sequences[:,-1]
+    return x, y
+
+def process_line2(corpus, data):
+    l1_haikus = data["row_1"].to_list()
+    l2_haikus = data["row_2"].to_list()
+    tokenizer = get_tokenizer(corpus)
+    input_sequences = []
+    for i, l1 in enumerate(l1_haikus):
+        l2 = l2_haikus[i]
+        l1_vectorized = tokenizer.texts_to_sequences([l1])[0]
+        l2_vectorized = tokenizer.texts_to_sequences([l2])[0]
+        for n in range(0, len(l2_vectorized)):
+            n_gram_seq = l2_vectorized[: n + 1]
+            input_sequences.append(l1_vectorized + n_gram_seq)
+    sequences = np.array(pad_sequences(input_sequences, maxlen=12, padding='pre'))
+    x, y = sequences[:,:-1],sequences[:,-1]
+    return x, y
+
+def process_line3(corpus, data):
+    l1_l2_haikus = [i.strip()+" "+j.strip() for i,j in zip(data["row_1"].to_list(),data["row_2"].to_list())]
+    l3_haikus = data["row_3"].to_list()
+    tokenizer = get_tokenizer(corpus)
+    input_sequences = []
+    for i, l1_l2 in enumerate(l1_l2_haikus):
+        l3 = l3_haikus[i]
+        l1_l2_vectorized = tokenizer.texts_to_sequences([l1_l2])[0]
+        l3_vectorized = tokenizer.texts_to_sequences([l3])[0]
+        for n in range(0, len(l3_vectorized)):
+            n_gram_seq = l3_vectorized[: n + 1]
+            input_sequences.append(l1_l2_vectorized + n_gram_seq)
+    sequences = np.array(pad_sequences(input_sequences, maxlen=17, padding='pre'))
+    x, y = sequences[:,:-1],sequences[:,-1]
+    return x, y
+
 def get_tokenizer(corpus: list) -> tf.keras.preprocessing.text.Tokenizer:
     """
     Creates a tokenizer object that is fit to the corpus. The tokenizer 
@@ -113,7 +164,7 @@ def get_x_y_sequences(corpus: list, vocab_size: int, tokenizer: tf.keras.preproc
     x, y = sequences[:,:-1],sequences[:,-1]
     return x, y
 
-def train_model(x: np.ndarray, y: np.ndarray, vocab_size:int , n_epochs:int=50, embedding_size:int=50, learning_rate:float=0.01, batch_size:float=512, hidden_dim:int=128, lstm_units:int = 10, output: str= None)->tuple:
+def train_model(x: np.ndarray, y: np.ndarray, vocab_size:int , n_epochs:int=50, embedding_size:int=50, learning_rate:float=0.01, batch_size:float=512, hidden_dim:int=128, lstm_units:int = 10)->tuple:
     """
     Trains an LSTM RNN model
 
@@ -127,7 +178,6 @@ def train_model(x: np.ndarray, y: np.ndarray, vocab_size:int , n_epochs:int=50, 
         batch_size (float, optional): batch size for training model. Defaults to 512.
         hidden_dim (int, optional): hidden dimension of model's dense layer. Defaults to 128.
         lstm_units (int, optional): number of LSTM units to use. Defaults to 10.
-        output (str, optional): output directory to save model. Defaults to None.
 
     Returns:
         tuple[tf.keras.models.Sequential, tf.keras.callbacks.History]: A tuple of model and its training history
@@ -139,19 +189,18 @@ def train_model(x: np.ndarray, y: np.ndarray, vocab_size:int , n_epochs:int=50, 
         # Embed input sequence
         Embedding(input_dim=vocab_size, output_dim=embedding_size, input_length=x.shape[1]),
         # Using bidirectional LSTM units
-        # Bidirectional(LSTM(lstm_units)),
         LSTM(lstm_units, return_sequences = True),
         LSTM(lstm_units),
         Dense(hidden_dim, activation='relu'),
         Dense(vocab_size, activation='softmax')
     ])
+
     # Set an optimizer for the model
     optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
     model.compile(loss='sparse_categorical_crossentropy', optimizer=optimizer, metrics=['accuracy', Perplexity()])
     # Train the model
     history = model.fit(tf.convert_to_tensor(x), tf.convert_to_tensor(y), batch_size = batch_size, epochs=n_epochs, verbose=2)
-    model.save(os.path.join(output, "model"))
-    joblib.dump(history, os.path.join(output, f"history"))
+    model.save("models/lstm")
     return model, history
 
 def process_raw_haiku(haiku):
@@ -168,18 +217,76 @@ def process_token(token: str):
         return token
     return re.sub(r'[^\w\s]', '', token.strip())
 
-def generate_poem(model, tokenizer, starter_poem, max_len, length = 20):
-    for _ in range(length):
-        token_list = tokenizer.texts_to_sequences([starter_poem])[0]
-        token_list = pad_sequences([token_list], maxlen=max_len-1, padding='pre')
-        predicted = np.argmax(model.predict(token_list, verbose=0), axis=-1)
+def syllable_count(word):
+    # "source https://stackoverflow.com/questions/46759492/syllable-count-in-python"
+    if word.strip() == "":
+        return 0
+    count = 0
+    vowels = "aeiouy"
+    if word[0] in vowels:
+        count += 1
+    for index in range(1, len(word)):
+        if word[index] in vowels and word[index - 1] not in vowels:
+            count += 1
+            if word.endswith("e"):
+                count -= 1
+    if count == 0:
+        count += 1
+    return count
+
+def generate_poem(model1, model2, model3, tokenizer, starter_poem):
+    line1 = starter_poem
+    while syllable_count(line1) < 5:
+        token_list = tokenizer.texts_to_sequences([line1])[0]
+        token_list = pad_sequences([token_list], maxlen=5-1, padding='pre')
+        probs = model1.predict(token_list, verbose=0)[-1]
+        predicted = np.random.choice(len(probs), p=probs)
+        # predicted = np.argmax(model.predict(token_list, verbose=0), axis=-1)
         output_word = ""
         for word, index in tokenizer.word_index.items():
             if index == predicted:
                 output_word = word
                 break
-        starter_poem += " " + output_word
-    return starter_poem
+        line1 += " " + output_word
+    line2 = ""
+    while syllable_count(line2) < 7:
+        token_list = tokenizer.texts_to_sequences([line1 + line2])[0]
+        token_list = pad_sequences([token_list], maxlen=12-1, padding='pre')
+        probs = model2.predict(token_list, verbose=0)[-1]
+        predicted = np.random.choice(len(probs), p=probs)
+        output_word = ""
+        for word, index in tokenizer.word_index.items():
+            if index == predicted:
+                output_word = word
+                break
+        line2 += " " + output_word
+    line3 = ""
+    while syllable_count(line3) < 5:
+        token_list = tokenizer.texts_to_sequences([line1 + line2 + line3])[0]
+        token_list = pad_sequences([token_list], maxlen=17-1, padding='pre')
+        probs = model3.predict(token_list, verbose=0)[-1]
+        predicted = np.random.choice(len(probs), p=probs)
+        # predicted = np.argmax(model.predict(token_list, verbose=0), axis=-1)
+        output_word = ""
+        for word, index in tokenizer.word_index.items():
+            if index == predicted:
+                output_word = word
+                break
+        line3 += " " + output_word
+    return "\n".join([line1.strip(), line2.strip(), line3.strip()])
+
+# def generate_poem(model, tokenizer, starter_poem, max_len, length = 20):
+#     for _ in range(length):
+#         token_list = tokenizer.texts_to_sequences([starter_poem])[0]
+#         token_list = pad_sequences([token_list], maxlen=max_len-1, padding='pre')
+#         predicted = np.argmax(model.predict(token_list, verbose=0), axis=-1)
+#         output_word = ""
+#         for word, index in tokenizer.word_index.items():
+#             if index == predicted:
+#                 output_word = word
+#                 break
+#         starter_poem += " " + output_word
+#     print(starter_poem)
 
 def plot_convergence(history):
     fig, ax = plt.subplots(nrows = 1, ncols = 2, figsize = (15, 5))
@@ -188,32 +295,30 @@ def plot_convergence(history):
     fig.savefig("models/convergence.png")
 
 def main(args):
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--epochs', default=10, type=int)
-    parser.add_argument('--batch_size', default=256, type=int,)
-    parser.add_argument('--learning_rate', default=0.001, type=float)
-    args = parser.parse_args(args)
-    timestamp = datetime.datetime.now().strftime("%h-%d-%H:%M:%S")
-    output = os.path.join("models", "lstm_"+timestamp)
-    os.mkdir(output)
-    # ----
-    corpus = get_corpus()
+    model_id = int(args[0])
+    timestamp = datetime.datetime.now().strftime("%h-%d-%H:%M")
+    output = os.path.join("models", "lstm_linebyline300e")
+    # # if not os.path.exists(output):
+    # os.mkdir(output)
+    corpus, data = get_corpus()
+    if model_id == 1:
+        x, y = process_line1(corpus, data)
+    elif model_id == 2:
+        x, y = process_line2(corpus, data)
+    elif model_id == 3:
+        x, y = process_line3(corpus, data)
+    else:
+        print("not valid id.")
+        return
     tokenizer = get_tokenizer(corpus)
     vocab_size = len(tokenizer.word_index) + 1
-    max_length = 25
-    # ---
-    x, y = get_x_y_sequences(corpus = corpus, vocab_size = vocab_size, tokenizer = tokenizer, max_length=max_length)
-    model, history = train_model(x, y, vocab_size=vocab_size, n_epochs = args.epochs, learning_rate = args.learning_rate, batch_size=args.batch_size, output=output)
-
-    poem1 = "sometimes i go to the"
-    poem2 = "birds fly over and"
-    poem3 = "eating food"
-    poems = [poem1, poem2, poem3]
-    with open(os.path.join(output, "poems.txt"), 'w') as f:
-        for poem in poems:
-            f.write(f"\n\nPoem started with {poem}, and model generated:\n")
-            text = generate_poem(model, tokenizer, poem, max_length)
-            f.write(text)
+    model, history = train_model(x, y, \
+        vocab_size=vocab_size, 
+        n_epochs = 200, 
+        learning_rate=0.001, 
+        batch_size = 256)
+    model.save(os.path.join(output, f"model_{model_id}"))
+    joblib.dump(history, os.path.join(output, f"history_{model_id}"))
 
 
 if __name__ == "__main__":

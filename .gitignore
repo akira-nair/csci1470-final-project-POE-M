@@ -129,3 +129,6 @@ dmypy.json
 .pyre/
 
 code/models/*
+code/__pycache__
+code/.ipynb_checkpoints
+*.out
