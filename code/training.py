@@ -1,3 +1,10 @@
+#!/usr/bin/env python
+'''
+File        :   training.py
+Author      :   Akira Nair, Christine Jeong, Sedong Hwang
+Description :   Train an LSTM model
+'''
+
 import tensorflow as tf
 import pandas as pd
 import numpy as np
