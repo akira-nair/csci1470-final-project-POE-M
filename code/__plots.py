@@ -1,3 +1,10 @@
+#!/usr/bin/env python
+'''
+File        :   __plots.py
+Author      :   Akira Nair, Christine Jeong, Sedong Hwang
+Description :   Plots
+'''
+
 import seaborn as sns
 import matplotlib.pyplot as plt
 sns.set(rc = {"figure.dpi":300})
