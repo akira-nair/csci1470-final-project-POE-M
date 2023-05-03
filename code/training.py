@@ -4,7 +4,7 @@ import numpy as np
 import re
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Embedding, Dense, SimpleRNN, GRU, Dropout, Bidirectional
-from utils.metrics import Perplexity
+from __metrics import Perplexity
 
 def train_model(x: np.ndarray, y: np.ndarray, vocab_size:int , n_epochs:int=200, embedding_size:int=50, learning_rate:float=0.001, batch_size:float=256, hidden_dim:int=128, lstm_units:int = 10)->tuple:
     """
