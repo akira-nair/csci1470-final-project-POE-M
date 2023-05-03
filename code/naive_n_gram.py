@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 '''
-File        :   train_model.py
-Author      :   Akira Nair, Sedong Hwang, Christine Jeong
-Description :   Trains a language model to generate haikus
+File        :   naive_n_gram.py
+Author      :   Akira Nair, Christine Jeong, Sedong Hwang
+Description :   Model 1: Naive N-gram LSTM model
 '''
+
 import tensorflow as tf
 import numpy as np
 from tensorflow.keras.preprocessing.sequence import pad_sequences
