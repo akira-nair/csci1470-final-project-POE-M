@@ -9,4 +9,4 @@
 # conda init bash
 # conda activate /users/anair27/anaconda/akira_conda
 cd /users/anair27/data/anair27/misc/dl-final/csci1470-final-project-POE-M/code
-python3 line_by_line.py ${1}
+python3 line_by_line_no_stops.py ${1}
