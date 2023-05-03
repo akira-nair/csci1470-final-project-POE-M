@@ -5,25 +5,12 @@ Author      :   Akira Nair, Sedong Hwang, Christine Jeong
 Description :   Trains a language model to generate haikus
 '''
 import tensorflow as tf
-import pandas as pd
 import numpy as np
-import re
 from tensorflow.keras.preprocessing.sequence import pad_sequences
-from tensorflow.keras.preprocessing.text import Tokenizer
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, Embedding, Dense, SimpleRNN, GRU, Dropout, Bidirectional
-from sklearn.model_selection import train_test_split
-import matplotlib.pyplot as plt
-import seaborn as sns
-import argparse
 import sys, os
-import datetime
 import joblib
-from utils.metrics import Perplexity
 import preprocessing
 from training import train_model
-import shutil
-sns.set(rc={"figure.dpi": 300})
 tf.keras.backend.clear_session()
 
 """
@@ -77,42 +64,21 @@ def get_x_y_sequences(corpus: list, vocab_size: int, tokenizer: tf.keras.preproc
     x, y = sequences[:,:-1],sequences[:,-1]
     return x, y
 
-def generate_poem(model, tokenizer, starter_poem, max_len, length = 20):
-    for _ in range(length):
-        token_list = tokenizer.texts_to_sequences([starter_poem])[0]
-        token_list = pad_sequences([token_list], maxlen=max_len-1, padding='pre')
-        predicted = np.argmax(model.predict(token_list, verbose=0), axis=-1)
-        output_word = ""
-        for word, index in tokenizer.word_index.items():
-            if index == predicted:
-                output_word = word
-                break
-        starter_poem += " " + output_word
-    return starter_poem
-
-def plot_convergence(history):
-    fig, ax = plt.subplots(nrows = 1, ncols = 2, figsize = (15, 5))
-    sns.lineplot(history.history['loss'], ax = ax[0])
-    sns.lineplot(history.history['accuracy'], ax = ax[1])
-    fig.savefig("models/convergence.png")
-
 def main(args):
-    # if os.path.exists(output):
-    #     shutil.rmdir(output)
+    # set output directory
     output = os.path.join("models", "three_architectures", "naive_n_gram")
     if not os.path.exists(output):
         os.mkdir(output)
-    # ----
-    corpus, data = preprocessing.get_corpus()
+    # get the corpus and tokenizer
+    corpus, _ = preprocessing.get_corpus()
     tokenizer = preprocessing.get_tokenizer(corpus)
     vocab_size = len(tokenizer.word_index) + 1
     max_length = 17
-    # ---
+    # get x and y and train the model
     x, y = get_x_y_sequences(corpus = corpus, vocab_size = vocab_size, tokenizer = tokenizer, max_length=max_length)
     model, history = train_model(x, y, vocab_size=vocab_size)
     model.save(os.path.join(output, "model"))
     joblib.dump(history, os.path.join(output, f"history"))
-
 
 if __name__ == "__main__":
     main(sys.argv[1:])
