@@ -1,3 +1,9 @@
+#!/usr/bin/env python
+'''
+File        :   generate_poems.py
+Author      :   Akira Nair, Christine Jeong, Sedong Hwang
+Description :   Functions to generate poems on pretrained models
+'''
 import numpy as np
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 
@@ -170,7 +176,7 @@ def generate_poem_line_by_line_with_stops(model1, model2, model3, tokenizer, sta
     # we wait until the model generates "newline"
     while output_word != "newline":
         token_list = tokenizer.texts_to_sequences([line1])[0]
-        token_list = pad_sequences([token_list], maxlen=5-1, padding='pre')
+        token_list = pad_sequences([token_list], maxlen=6-1, padding='pre')
         if deterministic:
             np.random.seed(seed)
         probs = model1.predict(token_list, verbose=0)[-1]
@@ -185,7 +191,7 @@ def generate_poem_line_by_line_with_stops(model1, model2, model3, tokenizer, sta
     output_word = ""
     while output_word != "newline":
         token_list = tokenizer.texts_to_sequences([line1 + line2])[0]
-        token_list = pad_sequences([token_list], maxlen=12-1, padding='pre')
+        token_list = pad_sequences([token_list], maxlen=14-1, padding='pre')
         if deterministic:
             np.random.seed(seed)
         probs = model2.predict(token_list, verbose=0)[-1]
@@ -200,7 +206,7 @@ def generate_poem_line_by_line_with_stops(model1, model2, model3, tokenizer, sta
     output_word = ""
     while output_word != "newline":
         token_list = tokenizer.texts_to_sequences([line1 + line2 + line3])[0]
-        token_list = pad_sequences([token_list], maxlen=17-1, padding='pre')
+        token_list = pad_sequences([token_list], maxlen=20-1, padding='pre')
         if deterministic:
             np.random.seed(seed)
         probs = model3.predict(token_list, verbose=0)[-1]
@@ -247,3 +253,4 @@ def syllable_count(word: str) -> int:
     if count == 0:
         count += 1
     return count
+
